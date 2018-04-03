@@ -1,0 +1,9 @@
+$ttl 38400
+0.1.168.192.in-addr.arpa.	IN	SOA	ns.webdesigncontest.org. mark.webprofessionals.org. (
+			1522111859
+			10800
+			3600
+			604800
+			38400 )
+0.1.168.192.in-addr.arpa.	IN	NS	ns.webdesigncontest.org.
+1.1.168.192.in-addr.arpa.	IN	PTR	usg.webdesigncontest.org.

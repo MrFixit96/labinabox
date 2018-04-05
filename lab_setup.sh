@@ -6,11 +6,22 @@ export FTP_CONTAINER=janderton/labinabox:ftpserver
 export LAB_SHELL_CONTAINER=janderton/labinabox:lab_shell
 export DNS_CONTAINER=sameersbn/bind:latest
 export EXTERNAL_IP=`ifconfig|grep eth0 -A1|grep inet|awk -F: '{print $2}'|awk '{print $1}'`
+export BIND_STATUS=`docker ps -a|grep bind`
 
 #Setup DNS Server
-
+echo '*******Copying DNS Zones if not present***********'
+if [[ -z /srv/dns ]];then
+	cp -r /srv/labinabox/dns /srv/dns
+fi
 echo '***********STARTING DNS**********'
-docker run -itd --name=bind --dns=127.0.0.1 -p $EXTERNAL_IP:53:53/udp -p $EXTERNAL_IP:10000:10000  --volume=/srv/dns:/data  --env='ROOT_PASSWORD=SecretPassword'  $DNS_CONTAINER
+#check and see if dns is already running and start it if its not
+if [[ ! $BIND_STATUS ]];then
+    docker run -itd --name=bind --dns=127.0.0.1 -p $EXTERNAL_IP:53:53/udp -p $EXTERNAL_IP:10000:10000  --volume=/srv/dns:/data  --env='ROOT_PASSWORD=SecretPassword'  $DNS_CONTAINER
+elif [[ `echo $BIND_STATUS|grep Exited` ]];then
+    docker start bind
+else
+    echo 'DNS is already running' && docker container ls
+fi
 
 #Setup Student Shell environment
 echo '***********STARTING SHELLS**********'
@@ -28,14 +39,10 @@ echo '***********STARTING FTP SERVER**********'
 docker run -itd -p 30000-30010:30000-30010 -p 21:21 -p 20:20 -v "/srv:/ftpdepot" --name ftpserver $FTP_CONTAINER
 #docker cp ftpsetup.sh $FTP_CONTAINER:/ftpdepot/setup.sh
 echo '***********Configuring FTP SERVER**********'
-docker exec -it ftpserver /bin/ash -c '/ftpdepot/ftpsetup.sh'
-
-#Set User Passwords
-echo '***********Setting up FTP Users**********'
-for id in `seq 1 10`
-do
-        docker exec -it ftpserver /bin/sh -c "echo user$id:password|chpasswd"
-done
+docker exec -itd ftpserver /bin/sh -c '/ftpdepot/ftpsetup.sh'
+docker stop ftpserver
+docker start ftpserver
+docker container ls
 
 #Setup student web servers
 echo '***********Setting UP WWW SERVER**********'

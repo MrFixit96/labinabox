@@ -1,3 +1,6 @@
+#/bin/bash
+
+echo '**********Removing User Accounts and Home Folders*********'
 for id in `seq 1 10`;do 
   docker stop user$id
   docker rm user$id
@@ -5,11 +8,20 @@ for id in `seq 1 10`;do
   rm -rf /srv/user$id
 done
 
+echo '**********Stopping Lab Services*********'
 docker stop lab_www_server
 docker stop ftpserver
 docker stop api_server
 docker stop bind
+
+
+echo '**********Removing Containers*********'
 docker rm ftpserver
-docker rm api_server
 docker rm lab_www_server
-docker rm bind
+
+docker rm api_server
+rm -rf /srv/api_server
+
+#Removing Bind image makes it hard to bootstrap system when no
+#no internet is present. Only do this when you need to update the image
+#docker rm bind

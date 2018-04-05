@@ -1,0 +1,36 @@
+version: "3"
+services:
+  dns:
+    image: sameersbn/bind:latest
+    volumes:
+      - /srv/dns:/data
+  ftp:
+    image: janderton/labinabox:ftpserver
+    volumes:
+      - /srv:/ftpdepot
+    depends_on:
+      - dns
+  web:
+    image: janderton/labinabox:lab_www_server
+    deploy:
+      replicas: 5
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 50M
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "80:80"
+    networks:
+      - webnet
+    volumes:
+      - /srv:/wwwroot
+    depends_on:
+      - dns
+  api:
+    image: janderton/labinabox:api_server
+    depends_on:
+      - dns
+networks:
+  webnet:

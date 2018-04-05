@@ -1,0 +1,40 @@
+version: "3"
+services:
+  dns:
+    image: janderton/labinabox:api_server
+    volumes:
+      - /srv/dns:/data
+  ftp:
+    image: janderton/labinabox:ftpserver
+    volumes:
+      - /srv:/ftpdepot
+    depends_on:
+      - dns
+  web:
+    image: janderton/labinabox:lab_www_server
+    deploy:
+      replicas: 5
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 50M
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "80:80"
+    networks:
+      - webnet
+    volumes:
+      - /srv:/wwwroot
+    depends_on:
+      - dns
+  api:
+    build: ../web-design-contest-api
+    depends_on:
+      - dns
+  dns:
+    image: janderton/labinabox:api_server
+    volumes:
+      - /srv/dns:/data
+networks:
+  webnet:

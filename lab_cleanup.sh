@@ -20,7 +20,7 @@ docker rm ftpserver
 docker rm lab_www_server
 
 docker rm api_server_v2
-rm -rf /srv/api_server_v2
+rm -rf /srv/api_server
 
 #Removing Bind image makes it hard to bootstrap system when no
 #no internet is present. Only do this when you need to update the image

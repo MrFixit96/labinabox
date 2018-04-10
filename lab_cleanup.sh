@@ -2,10 +2,10 @@
 
 echo '**********Removing User Accounts and Home Folders*********'
 for id in `seq 1 10`;do 
-  docker stop user$id
-  docker rm user$id
-  userdel -r user$id
-  rm -rf /srv/user$id
+  docker stop team$id
+  docker rm team$id
+  userdel -r team$id
+  rm -rf /srv/team$id
 done
 
 echo '**********Stopping Lab Services*********'
@@ -25,3 +25,6 @@ rm -rf /srv/api_server
 #Removing Bind image makes it hard to bootstrap system when no
 #no internet is present. Only do this when you need to update the image
 #docker rm bind
+rm -rf /srv/dns
+cp -rf /srv/labinabox/dns /srv/
+docker start bind

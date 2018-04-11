@@ -15,9 +15,16 @@ export LAB_SHELL_CONTAINER_NAME=lab_shell
 export DNS_CONTAINER=sameersbn/bind:latest
 export DNS_CONTAINER_NAME=bind
 export DNS_VOLUME='/srv/dns/'
-export EXTERNAL_IP=`ifconfig|grep eth0 -A1|grep inet|awk -F: '{print $2}'|awk '{print $1}'`
+if [[ `ifconfig|grep eno1 -A1|grep inet|awk '{print $2}'|awk '{print $1}'` ]]; then 
+	export EXTERNAL_IP=`ifconfig|grep eno1 -A1|grep inet|awk '{print $2}'|awk '{print $1}'`
+elif [[ `ifconfig|grep wlp58s0 -A1|grep inet|awk '{print $2}'` ]];then
+       export EXTERNAL_IP=`ifconfig|grep wlp58s0 -A1|grep inet|awk '{print $2}'`
+fi
+#export EXTERNAL_IP=`ifconfig|grep eth0 -A1|grep inet|awk -F: '{print $2}'|awk '{print $1}'||ifconfig|grep wlp58s0 -A1|grep inet|awk -F: '{print $2}'|awk '{print $1}'`
 export BIND_STATUS=`docker ps -a|grep bind`
 export NUM_TEAMS=10
+
+
 #Setup DNS Server
 echo '*******Copying DNS Zones if not present***********'
 if [[ ! -d /srv/dns ]];then
@@ -39,7 +46,7 @@ for id in `seq 1 $NUM_TEAMS`
 do
     #sudo useradd -G docker -m -p '$6$XtP.pKgi$QAykbscs0XTFkpgvPtm/Pm76M4XGkBhGxIS3Th8nN6VX9llOsUn4jyNpyu3Z597eTk8k4wRVYHS4FgkeNMcVr.' -s /usr/local/bin/lab_shell user$id
     sudo useradd  -p '$6$XtP.pKgi$QAykbscs0XTFkpgvPtm/Pm76M4XGkBhGxIS3Th8nN6VX9llOsUn4jyNpyu3Z597eTk8k4wRVYHS4FgkeNMcVr.'  -s /usr/local/bin/lab_shell team$id
-    docker create -it -v team$id:/app   --name team$id $LAB_SHELL_CONTAINER /bin/bash
+    docker create -it -v /srv/team$id:/app   --name team$id $LAB_SHELL_CONTAINER /bin/bash
     mkdir -p /srv/team$id/html && cd /srv/team$id && tree -H baseHREF >/srv/team$id/html/index.html && cd -
 done
 
@@ -55,10 +62,12 @@ docker start $FTP_CONTAINER_NAME > /dev/null 2>&1
 
 #Setup student web servers
 echo '*******Copying WWW Config if not present***********'
-if [[ ! -f /srv/nginx/etc/nginx/conf.d/default.conf ]];then
-        cp -rf /srv/labinabox/nginx /srv
+if [[ -f /srv/nginx/etc/nginx/conf.d/default.conf ]];then
+       rm -rf /srv/nginx && cp -rf /srv/labinabox/nginx /srv
 fi
 echo '***********Setting UP WWW SERVER**********'
+
+
 docker run -itd -p 80:80  -v "$WWW_CONFIG_VOLUME:/etc/nginx" --volumes-from team1:ro --volumes-from ftpserver:rw --name $WWW_CONTAINER_NAME $WWW_CONTAINER
 docker cp /usr/bin/tree $WWW_CONTAINER_NAME:/usr/bin/tree
 cd /srv &&tree -H baseHREF >/srv/html/index.html && cd - #<----Run this from wwwroot dir in main OS
@@ -71,7 +80,7 @@ server {
   server_name  team$id.webdesigncontest.org;
 
   location / {
-     root   /wwwroot/team$id/html;
+     root   /ftpdepot/team$id/html;
      index  index.html index.htm;
   }
 
@@ -80,12 +89,10 @@ EOF
 
 echo "Checking team$id dns"
   if [[ ! `grep -i team$id /srv/dns/bind/lib/webdesigncontest.org.hosts` ]];then
-    export line="team$id.webdesigncontest.org.     IN      A       10.0.241.11"
+    export line="team$id.webdesigncontest.org.     IN      A       $EXTERNAL_IP"
     echo "writing $line"
     echo $line>>/srv/dns/bind/lib/webdesigncontest.org.hosts
 fi
-
-ln /srv/team$id /srv/html/team$id
 
 done
 

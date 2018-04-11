@@ -2,10 +2,10 @@
 
 echo '**********Removing User Accounts and Home Folders*********'
 for id in `seq 1 10`;do 
-  docker stop user$id
-  docker rm user$id
-  userdel -r user$id
-  rm -rf /srv/user$id
+  docker stop team$id
+  docker rm team$id
+  userdel -r team$id
+  rm -rf /srv/team$id
 done
 
 echo '**********Stopping Lab Services*********'

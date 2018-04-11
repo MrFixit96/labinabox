@@ -18,10 +18,16 @@ export DNS_VOLUME='/srv/dns/'
 export EXTERNAL_IP=`ifconfig|grep eth0 -A1|grep inet|awk -F: '{print $2}'|awk '{print $1}'`
 export BIND_STATUS=`docker ps -a|grep bind`
 
+#Configuring Docker 
+echo '*******Configuring Docker Port******'
+if [[ ! -f /etc/docker/daemon.json ]];then
+    cp -rf /srv/labinabox/docker/daemon.json /etc/docker/
+fi
+service docker restart
 #Setup DNS Server
 echo '*******Copying DNS Zones if not present***********'
-if [[ -z /srv/dns ]];then
-	cp -r /srv/labinabox/dns $DNS_VOLUME
+if [[ ! -d /srv/dns ]];then
+    cp -r /srv/labinabox/dns $DNS_VOLUME
 fi
 echo '***********STARTING DNS**********'
 #check and see if dns is already running and start it if its not
@@ -34,19 +40,25 @@ else
 fi
 
 #Setup Student Shell environment
+echo '***********Copying SHELL**********'
+if [[ ! -f /usr/local/bin/lab_shell ]];then
+    cp /srv/labinabox/lab_shell /usr/local/bin/
+fi
+
 echo '***********STARTING SHELLS**********'
 for id in `seq 1 10`
 do
     #sudo useradd -G docker -m -p '$6$XtP.pKgi$QAykbscs0XTFkpgvPtm/Pm76M4XGkBhGxIS3Th8nN6VX9llOsUn4jyNpyu3Z597eTk8k4wRVYHS4FgkeNMcVr.' -s /usr/local/bin/lab_shell user$id
-    sudo useradd  -p '$6$XtP.pKgi$QAykbscs0XTFkpgvPtm/Pm76M4XGkBhGxIS3Th8nN6VX9llOsUn4jyNpyu3Z597eTk8k4wRVYHS4FgkeNMcVr.' -d /srv/user$id -s /usr/local/bin/lab_shell user$id
-    docker create -it   --name user$id $LAB_SHELL_CONTAINER /bin/bash
-    cd /srv/user$id && tree -H baseHREF >/srv/user$id/index.html && cd -
+    sudo useradd -m -p '$6$XtP.pKgi$QAykbscs0XTFkpgvPtm/Pm76M4XGkBhGxIS3Th8nN6VX9llOsUn4jyNpyu3Z597eTk8k4wRVYHS4FgkeNMcVr.' -s /usr/local/bin/lab_shell team$id
+    mkdir /srv/team$id && docker create -it  -v /srv/team$id:/root --name team$id $LAB_SHELL_CONTAINER /bin/bash
+    cd /srv/team$id && tree -H baseHREF >/srv/team$id/index.html && cd -
+#    ln -s /srv/team$id /srv/www/team$id
 done
 
 
 #Setup FTP Server
 echo '***********STARTING FTP SERVER**********'
-docker run -itd -p 30000-30010:30000-30010 -p 21:21 -p 20:20 -v "$FTP_VOLUME:/ftpdepot" --name $FTP_CONTAINER_NAME $FTP_CONTAINER
+docker run -itd -p 30000-30010:30000-30010 -p 21:21 -p 20:20 -v "$FTP_VOLUME:/ftpdepot:rw" --name $FTP_CONTAINER_NAME $FTP_CONTAINER
 echo '***********Configuring FTP SERVER**********'
 cp ftpsetup.sh $FTP_VOLUME
 docker exec -itd $FTP_CONTAINER_NAME /bin/sh -c '/ftpdepot/ftpsetup.sh'
@@ -55,7 +67,7 @@ docker start $FTP_CONTAINER_NAME > /dev/null 2>&1
 
 #Setup student web servers
 echo '*******Copying WWW Config if not present***********'
-if [[ -z /srv/nginx ]];then
+if [[ ! -d /srv/nginx ]];then
         cp -rf /srv/labinabox/nginx $WWW_VOLUME
 fi
 echo '***********Setting UP WWW SERVER**********'

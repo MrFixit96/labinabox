@@ -1,9 +1,9 @@
 $ttl 38400
-0.241.0.10.in-addr.arpa.	IN	SOA	api.webdesigncontest.org. mark.webprofessionals.org. (
+11.241.0.10.in-addr.arpa.	IN	SOA	api.webdesigncontest.org. mark.webprofessionals.org. (
 			1522108612
 			10800
 			3600
 			604800
 			38400 )
-0.241.0.10.in-addr.arpa.	IN	NS	api.webdesigncontest.org.
+11.241.0.10.in-addr.arpa.	IN	NS	api.webdesigncontest.org.
 11.241.0.10.in-addr.arpa.	IN	PTR	webdesigncontest.org.

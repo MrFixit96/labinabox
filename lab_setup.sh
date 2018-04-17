@@ -1,4 +1,5 @@
 #!/bin/bash
+IFS=$'\n'
 export API_REPO='https://github.com/pebcakerror/web-design-contest-api.git'
 export API_CONTAINER=janderton/labinabox:api_server_v2
 export API_CONTAINER_NAME=api_server_v2
@@ -15,14 +16,17 @@ export LAB_SHELL_CONTAINER_NAME=lab_shell
 export DNS_CONTAINER=sameersbn/bind:latest
 export DNS_CONTAINER_NAME=bind
 export DNS_VOLUME='/srv/dns/'
+export PWFILE='/srv/labinabox/passwords'
+export BIND_STATUS=`docker ps -a|grep bind`
+export NUM_TEAMS=`wc -l $PWFILE`
+
+
 if [[ `ifconfig|grep eno1 -A1|grep inet|awk '{print $2}'|awk '{print $1}'` ]]; then 
 	export EXTERNAL_IP=`ifconfig|grep eno1 -A1|grep inet|awk '{print $2}'|awk '{print $1}'`
 elif [[ `ifconfig|grep wlp58s0 -A1|grep inet|awk '{print $2}'` ]];then
        export EXTERNAL_IP=`ifconfig|grep wlp58s0 -A1|grep inet|awk '{print $2}'`
 fi
 #export EXTERNAL_IP=`ifconfig|grep eth0 -A1|grep inet|awk -F: '{print $2}'|awk '{print $1}'||ifconfig|grep wlp58s0 -A1|grep inet|awk -F: '{print $2}'|awk '{print $1}'`
-export BIND_STATUS=`docker ps -a|grep bind`
-export NUM_TEAMS=10
 
 
 #Setup DNS Server
@@ -50,6 +54,19 @@ do
     mkdir -p /srv/team$id/html && cd /srv/team$id && tree -H baseHREF >/srv/team$id/html/index.html && cd -
 done
 
+#Setting Team Passwords
+if [[ ! -f  /srv/nginx/etc/.htpasswd ]];then
+	touch  /srv/nginx/etc/.htpasswd
+fi
+readarray pwarray < $PWFILE
+for item in ${pwarray[@]};do
+       team=$(echo "$item"|awk '{print $1}')
+       passwd=$(echo $item|awk '{print $NF}')
+       echo "Setting PW for $team"
+       echo $team:$passwd|chpasswd
+       echo $passwd|htpasswd -nbi $team >> /srv/nginx/etc/.htpasswd
+done
+
 
 #Setup FTP Server
 echo '***********STARTING FTP SERVER**********'
@@ -63,21 +80,20 @@ docker start $FTP_CONTAINER_NAME > /dev/null 2>&1
 #Setup student web servers
 echo '*******Copying WWW Config if not present***********'
 if [[ -f /srv/nginx/etc/nginx/conf.d/default.conf ]];then
-       rm -rf /srv/nginx && cp -rf /srv/labinabox/nginx /srv
+       rm -rf /srv/nginx && cp -rf /srv/labinabox/nginx /srv/nginx
+elif [[ ! -f /srv/nginx/etc/nginx/conf.d/default.conf ]];then
+	cp -rf /srv/labinabox/nginx /srv/nginx
 fi
+
 echo '***********Setting UP WWW SERVER**********'
-
-
-docker run -itd -p 80:80  -v "$WWW_CONFIG_VOLUME:/etc/nginx" --volumes-from team1:ro --volumes-from ftpserver:rw --name $WWW_CONTAINER_NAME $WWW_CONTAINER
-docker cp /usr/bin/tree $WWW_CONTAINER_NAME:/usr/bin/tree
-cd /srv &&tree -H baseHREF >/srv/html/index.html && cd - #<----Run this from wwwroot dir in main OS
-
 for id in `seq 1 $NUM_TEAMS`;
 do
 tee /srv/nginx/etc/conf.d/team$id.conf <<EOF
 server {
   listen       80;
   server_name  team$id.webdesigncontest.org;
+  auth_basic "Admins Area";
+  auth_basic_user_file /etc/nginx/.htpasswd;
 
   location / {
      root   /ftpdepot/team$id/html;
@@ -94,7 +110,18 @@ echo "Checking team$id dns"
     echo $line>>/srv/dns/bind/lib/webdesigncontest.org.hosts
 fi
 
-done
+done #EndFor
+
+echo '##########Starting Web Server###############'
+docker run -itd -p 80:80  -v "$WWW_CONFIG_VOLUME:/etc/nginx" --volumes-from ftpserver:rw --name $WWW_CONTAINER_NAME $WWW_CONTAINER
+docker cp /usr/bin/tree $WWW_CONTAINER_NAME:/usr/bin/tree
+if [[ ! -d /srv/html ]];then
+   mkdir /srv/html 
+fi
+
+cd /srv
+tree -H baseHREF >/srv/html/index.html  #<----Run this from wwwroot dir in main OS
+cd -
 
 #Setup API Server
 echo '***********Cloning API Repo**********'

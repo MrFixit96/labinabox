@@ -21,10 +21,11 @@ docker rm lab_www_server
 
 docker rm api_server_v2
 rm -rf /srv/api_server
+rm -rf /srv/nginx
 
 #Removing Bind image makes it hard to bootstrap system when no
 #no internet is present. Only do this when you need to update the image
 #docker rm bind
-rm -rf /srv/dns
+rm -rf /srv/dns/bind/lib/web*
 cp -rf /srv/labinabox/dns /srv/
 docker start bind

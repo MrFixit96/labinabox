@@ -1,35 +1,52 @@
 #!/bin/bash
+##################################################################################################################################
+#
+#
+#	Name: lab_setup.sh
+#	Author: James Anderton @MrFixit96 (james@janderton.com)
+#	Date: 4/17/2018
+#	Purpose: This script will download and setup a "lab in a box" environment complete with one persistent shell per user,
+#		an FTP server, an Nginx WWW Server and a NodeJS API server.
+#
+#
+##################################################################################################################################
 IFS=$'\n'
+
+######## Global Config Parameters
 export API_REPO='https://github.com/pebcakerror/web-design-contest-api.git'
 export API_CONTAINER=janderton/labinabox:api_server_v2
 export API_CONTAINER_NAME=api_server_v2
 export API_VOLUME='/srv/api_server/'
+#
 export WWW_CONTAINER=janderton/labinabox:lab_www_server
 export WWW_CONTAINER_NAME=lab_www_server
 export WWW_VOLUME='/srv/'
 export WWW_CONFIG_VOLUME='/srv/nginx/etc/'
+#
 export FTP_CONTAINER=janderton/labinabox:ftpserver
 export FTP_CONTAINER_NAME=ftpserver
 export FTP_VOLUME='/srv'
+#
 export LAB_SHELL_CONTAINER=janderton/labinabox:lab_shell
 export LAB_SHELL_CONTAINER_NAME=lab_shell
+#
 export DNS_CONTAINER=sameersbn/bind:latest
 export DNS_CONTAINER_NAME=bind
 export DNS_VOLUME='/srv/dns/'
+#
 export PWFILE='/srv/labinabox/passwords'
 export BIND_STATUS=`docker ps -a|grep bind`
 export NUM_TEAMS=`wc -l $PWFILE | awk '{print $1}'`
 
-
+#IP info
 if [[ `ifconfig|grep eno1 -A1|grep inet|awk '{print $2}'|awk '{print $1}'` ]]; then 
 	export EXTERNAL_IP=`ifconfig|grep eno1 -A1|grep inet|awk '{print $2}'|awk '{print $1}'`
 elif [[ `ifconfig|grep wlp58s0 -A1|grep inet|awk '{print $2}'` ]];then
        export EXTERNAL_IP=`ifconfig|grep wlp58s0 -A1|grep inet|awk '{print $2}'`
 fi
-#export EXTERNAL_IP=`ifconfig|grep eth0 -A1|grep inet|awk -F: '{print $2}'|awk '{print $1}'||ifconfig|grep wlp58s0 -A1|grep inet|awk -F: '{print $2}'|awk '{print $1}'`
 
 
-#Setup DNS Server
+#################Setup DNS Server ############################################################################################33
 echo '*******Copying DNS Zones if not present***********'
 if [[ ! -d /srv/dns ]];then
 	cp -r /srv/labinabox/dns $DNS_VOLUME
@@ -44,7 +61,7 @@ else
     echo 'DNS is already running' && docker container ls
 fi
 
-#Setup Student Shell environment
+#################Setup Student Shell environment #################################################################################
 echo '***********STARTING SHELLS**********'
 for id in `seq 1 $NUM_TEAMS`
 do
@@ -54,7 +71,7 @@ do
     mkdir -p /srv/team$id/html && cd /srv/team$id && tree -H baseHREF >/srv/team$id/html/index.html && cd -
 done
 
-#Setup FTP Server
+###################Setup FTP Server ##############################################################################################
 echo '***********STARTING FTP SERVER**********'
 docker run -itd -p 30000-30010:30000-30010 -p 21:21 -p 20:20 -v "$FTP_VOLUME:/ftpdepot" --name $FTP_CONTAINER_NAME $FTP_CONTAINER
 echo '***********Configuring FTP SERVER**********'
@@ -71,7 +88,7 @@ docker exec -itd $FTP_CONTAINER_NAME /bin/sh -c "/ftpdepot/ftpsetup2.sh"
 docker stop $FTP_CONTAINER_NAME > /dev/null 2>&1
 docker start $FTP_CONTAINER_NAME > /dev/null 2>&1
 
-#Setting Team Passwords
+######################Setting Team Passwords########################################################################################
 if [[ ! -f  /srv/nginx/etc/.htpasswd ]];then
     mkdir -p /srv/nginx/etc
     touch  /srv/nginx/etc/.htpasswd
@@ -88,7 +105,7 @@ for item in ${pwarray[@]};do
        chown -R $team:$team /srv/$team
 done
 
-#Setup student web servers
+#######################Setup student web servers #####################################################################################
 echo '*******Copying WWW Config if not present***********'
 if [[ ! -f /srv/nginx/etc/nginx/conf.d/default.conf ]];then
 	cp -rf /srv/labinabox/nginx /srv/
@@ -112,6 +129,7 @@ server {
 }
 EOF
 
+##################### Registering WWW Virtual Servers ###############################################################################
 echo "Checking team$id dns"
   if [[ ! `grep -i team$id /srv/dns/bind/lib/webdesigncontest.org.hosts` ]];then
     export line="team$id.webdesigncontest.org.     IN      A       $EXTERNAL_IP"
@@ -132,7 +150,7 @@ cd /srv
 tree -H baseHREF >/srv/html/index.html  #<----Run this from wwwroot dir in main OS
 cd -
 
-#Setup API Server
+######################Setup API Server ################################################################################################
 echo '***********Cloning API Repo**********'
 git clone $API_REPO $API_VOLUME
 
@@ -141,6 +159,7 @@ docker build -t $API_CONTAINER_NAME $API_VOLUME
 docker run -itd -p 60606:60606  --name  $API_CONTAINER_NAME $API_CONTAINER
 docker container ls
 
+###################### Making Sure not to leave PWs behind #############################################################################
 if [[ -f /srv/passwords ]];then
     rm -rf /srv/passwords
 fi

@@ -1,4 +1,12 @@
 #/bin/bash
+####################################################################################################################################
+#
+#	NAME: lab_cleanup.sh
+#	Author: James Anderton @MrFixit96 (james@janderton.com)
+#	Date: 4/17/2018
+#	Purpose: This script reset's the lab in a box environment to a near pristine state saving for maybe a couple dns artifacts
+#
+###################################################################################################################################
 export PWFILE=/srv/labinabox/passwords
 export NUM_TEAMS=`wc -l $PWFILE |awk '{print$1}'`
 

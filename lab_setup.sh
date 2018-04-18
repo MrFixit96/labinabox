@@ -10,7 +10,7 @@ export WWW_VOLUME='/srv/'
 export WWW_CONFIG_VOLUME='/srv/nginx/etc/'
 export FTP_CONTAINER=janderton/labinabox:ftpserver
 export FTP_CONTAINER_NAME=ftpserver
-export FTP_VOLUME='/srv/'
+export FTP_VOLUME='/srv'
 export LAB_SHELL_CONTAINER=janderton/labinabox:lab_shell
 export LAB_SHELL_CONTAINER_NAME=lab_shell
 export DNS_CONTAINER=sameersbn/bind:latest
@@ -18,7 +18,7 @@ export DNS_CONTAINER_NAME=bind
 export DNS_VOLUME='/srv/dns/'
 export PWFILE='/srv/labinabox/passwords'
 export BIND_STATUS=`docker ps -a|grep bind`
-export NUM_TEAMS=`wc -l $PWFILE`
+export NUM_TEAMS=`wc -l $PWFILE | awk '{print $1}'`
 
 
 if [[ `ifconfig|grep eno1 -A1|grep inet|awk '{print $2}'|awk '{print $1}'` ]]; then 
@@ -54,10 +54,29 @@ do
     mkdir -p /srv/team$id/html && cd /srv/team$id && tree -H baseHREF >/srv/team$id/html/index.html && cd -
 done
 
+#Setup FTP Server
+echo '***********STARTING FTP SERVER**********'
+docker run -itd -p 30000-30010:30000-30010 -p 21:21 -p 20:20 -v "$FTP_VOLUME:/ftpdepot" --name $FTP_CONTAINER_NAME $FTP_CONTAINER
+echo '***********Configuring FTP SERVER**********'
+
+if [[ -f $FTP_VOLUME/ftpsetup.sh ]];then
+  rm -rf $FTP_VOLUME/ftpsetup.sh
+  rm -rf $FTP_VOLUME/ftpsetup2.sh
+fi
+
+cp /srv/labinabox/old_ftpsetup.sh $FTP_VOLUME/ftpsetup2.sh
+#cp /srv/labinabox/ftpsetup.sh $FTP_VOLUME/ftpsetup.sh
+
+docker exec -itd $FTP_CONTAINER_NAME /bin/sh -c "/ftpdepot/ftpsetup2.sh"
+docker stop $FTP_CONTAINER_NAME > /dev/null 2>&1
+docker start $FTP_CONTAINER_NAME > /dev/null 2>&1
+
 #Setting Team Passwords
 if [[ ! -f  /srv/nginx/etc/.htpasswd ]];then
-	touch  /srv/nginx/etc/.htpasswd
+    mkdir -p /srv/nginx/etc
+    touch  /srv/nginx/etc/.htpasswd
 fi
+
 readarray pwarray < $PWFILE
 for item in ${pwarray[@]};do
        team=$(echo "$item"|awk '{print $1}')
@@ -65,24 +84,14 @@ for item in ${pwarray[@]};do
        echo "Setting PW for $team"
        echo $team:$passwd|chpasswd
        echo $passwd|htpasswd -nbi $team >> /srv/nginx/etc/.htpasswd
+       docker exec -itd -itd $FTP_CONTAINER_NAME /bin/sh -c "echo $team:$passwd|chpasswd"
+       chown -R $team:$team /srv/$team
 done
-
-
-#Setup FTP Server
-echo '***********STARTING FTP SERVER**********'
-docker run -itd -p 30000-30010:30000-30010 -p 21:21 -p 20:20 -v "$FTP_VOLUME:/ftpdepot" --name $FTP_CONTAINER_NAME $FTP_CONTAINER
-echo '***********Configuring FTP SERVER**********'
-cp ftpsetup.sh $FTP_VOLUME
-docker exec -itd $FTP_CONTAINER_NAME /bin/sh -c '/ftpdepot/ftpsetup.sh'
-docker stop $FTP_CONTAINER_NAME > /dev/null 2>&1
-docker start $FTP_CONTAINER_NAME > /dev/null 2>&1
 
 #Setup student web servers
 echo '*******Copying WWW Config if not present***********'
-if [[ -f /srv/nginx/etc/nginx/conf.d/default.conf ]];then
-       rm -rf /srv/nginx && cp -rf /srv/labinabox/nginx /srv/nginx
-elif [[ ! -f /srv/nginx/etc/nginx/conf.d/default.conf ]];then
-	cp -rf /srv/labinabox/nginx /srv/nginx
+if [[ ! -f /srv/nginx/etc/nginx/conf.d/default.conf ]];then
+	cp -rf /srv/labinabox/nginx /srv/
 fi
 
 echo '***********Setting UP WWW SERVER**********'
@@ -131,3 +140,7 @@ echo '***********Setting UP API SERVER**********'
 docker build -t $API_CONTAINER_NAME $API_VOLUME
 docker run -itd -p 60606:60606  --name  $API_CONTAINER_NAME $API_CONTAINER
 docker container ls
+
+if [[ -f /srv/passwords ]];then
+    rm -rf /srv/passwords
+fi

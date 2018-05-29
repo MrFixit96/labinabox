@@ -7,3 +7,9 @@ Author: James Anderton @MrFixit96 (james@janderton.com)
 Date: 4/17/2018
 Purpose: This script will download and setup a "lab in a box" environment complete with one persistent shell per user, an FTP server, an Nginx WWW Server and a NodeJS API server.
 ```
+#### File: lab_cleanup.sh
+```
+Author: James Anderton @MrFixit96 (james@janderton.com)
+Date: 4/17/2018
+Purpose: This script will stop all services and clean up the artifacts created by the "lab_setup.sh" script and restart the bind container so that the lab server is ready for another contest.
+```

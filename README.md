@@ -1,5 +1,5 @@
 # Lab In A Box
-This project started out as a way to host the contestant environment for the web design contest hosted by WebProfessionals.org and will start up a shell container for each team as well as an nginx and vsftp container all pointing to the user's home directory and htpasswd protected on the web frontend. Finally, there is a NodeJS container hosting an API server as well for the contestants to consume...this is hosted in the forked repo.
+This project started out as a way to host the contestant environment for the web design contest hosted by WebProfessionals.org and will start up a shell container for each team as well as an nginx and vsftp container all pointing to the user's home directory and htpasswd protected on the web frontend. Finally, there is a NodeJS container hosting an API server as well for the contestants to consume. The docker file for the api server is hosted in the forked repo web-design-contest-api.
 
 #### File: lab_setup.sh
 ```

@@ -9,6 +9,7 @@
 ###################################################################################################################################
 export PWFILE=/srv/labinabox/passwords
 export NUM_TEAMS=`wc -l $PWFILE |awk '{print$1}'`
+export DOCKER_HOST=tcp://0.0.0.0:2375
 
 echo '**********Removing User Accounts and Home Folders*********'
 for id in `seq 1 $NUM_TEAMS`;do 

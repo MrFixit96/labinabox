@@ -47,11 +47,18 @@ elif [[ `ifconfig|grep wlp58s0 -A1|grep inet|awk '{print $2}'` ]];then
        export EXTERNAL_IP=`ifconfig|grep wlp58s0 -A1|grep inet|awk '{print $2}'`
 fi
 
-
-#################Setup DNS Server ############################################################################################33
+######Potential Regression... not sure why this was removed, Leaving it in for Branch Merge #######
+#Configuring Docker 
+echo '*******Configuring Docker Port******'
+if [[ ! -f /etc/docker/daemon.json ]];then
+    cp -rf /srv/labinabox/docker/daemon.json /etc/docker/
+fi
+service docker restart
+####################################################################################################
+#Setup DNS Server
 echo '*******Copying DNS Zones if not present***********'
 if [[ ! -d /srv/dns ]];then
-	cp -r /srv/labinabox/dns $DNS_VOLUME
+    cp -r /srv/labinabox/dns $DNS_VOLUME
 fi
 echo '***********STARTING DNS**********'
 #check and see if dns is already running and start it if its not
@@ -64,10 +71,14 @@ else
 fi
 
 #################Setup Student Shell environment #################################################################################
+#Setup Student Shell environment
+echo '***********Copying SHELL**********'
+if [[ ! -f /usr/local/bin/lab_shell ]];then
+    cp /srv/labinabox/lab_shell /usr/local/bin/
+fi
 echo '***********STARTING SHELLS**********'
 for id in `seq 1 $NUM_TEAMS`
 do
-    #sudo useradd -G docker -m -p '$6$XtP.pKgi$QAykbscs0XTFkpgvPtm/Pm76M4XGkBhGxIS3Th8nN6VX9llOsUn4jyNpyu3Z597eTk8k4wRVYHS4FgkeNMcVr.' -s /usr/local/bin/lab_shell user$id
     sudo useradd  -p '$6$XtP.pKgi$QAykbscs0XTFkpgvPtm/Pm76M4XGkBhGxIS3Th8nN6VX9llOsUn4jyNpyu3Z597eTk8k4wRVYHS4FgkeNMcVr.'  -s /usr/local/bin/lab_shell team$id
     docker create -it -v /srv/team$id:/app   --name team$id $LAB_SHELL_CONTAINER /bin/bash
     mkdir -p /srv/team$id/html && cd /srv/team$id && tree -H baseHREF >/srv/team$id/html/index.html && cd -
@@ -75,7 +86,7 @@ done
 
 ###################Setup FTP Server ##############################################################################################
 echo '***********STARTING FTP SERVER**********'
-docker run -itd -p 30000-30010:30000-30010 -p 21:21 -p 20:20 -v "$FTP_VOLUME:/ftpdepot" --name $FTP_CONTAINER_NAME $FTP_CONTAINER
+docker run -itd -p 30000-30010:30000-30010 -p 21:21 -p 20:20 -v "$FTP_VOLUME:/ftpdepot:rw" --name $FTP_CONTAINER_NAME $FTP_CONTAINER
 echo '***********Configuring FTP SERVER**********'
 
 if [[ -f $FTP_VOLUME/ftpsetup.sh ]];then
@@ -112,7 +123,7 @@ done
 #######################Setup student web servers #####################################################################################
 echo '*******Copying WWW Config if not present***********'
 if [[ ! -f /srv/nginx/etc/nginx/conf.d/default.conf ]];then
-	cp -rf /srv/labinabox/nginx /srv/
+	cp -rf /srv/labinabox/nginx $WWW_VOLUME
 fi
 
 echo '***********Setting UP WWW SERVER**********'

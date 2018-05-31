@@ -101,6 +101,8 @@ docker stop $FTP_CONTAINER_NAME > /dev/null 2>&1
 docker start $FTP_CONTAINER_NAME > /dev/null 2>&1
 
 ###################Setup/start Minio Server ######################################################################################
+echo '**********STARTING MINIO CLOUD STORAGE SERVER***********************'
+# TODO: Setup Docker Secrets for team auth to Minio
 docker-compose -f minio/docker-compose.yml up -d
 
 ######################Setting Team Passwords########################################################################################

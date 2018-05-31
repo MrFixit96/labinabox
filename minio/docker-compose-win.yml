@@ -1,41 +1,38 @@
 version: "3"
 services:
     team1:
-        user: '999'
         ports:
             - '9001:9000'
         container_name: minio1
         volumes:
-          - '/srv/minio:/data'
-          - '/srv/minio/config:/root/.minio'
+          - 'c:\minio:/data'
+          - 'c:\minio\config:/root/.minio'
         image: minio/minio
         environment:
           MINIO_ACCESS_KEY: team1
           MINIO_SECRET_KEY: 'bird-wheat-govern'
         command: server /data/team1
     team2:
-        user: '999'
         ports:
             - '9002:9000'
         container_name: minio2
         volumes:
-          - '/srv/minio:/data'
-          - '/srv/minio/config:/root/.minio'
+          - 'c:\minio:/data'
+          - 'c:\minio\config:/root/.minio'
         image: minio/minio
         environment:
-          MINIO_ACCESS_KEY: team2
+          MINIO_ACCESS_KEY: team1
           MINIO_SECRET_KEY: 'bird-wheat-govern'
         command: server /data/team2
     team3:
-        user: '999'
         ports:
             - '9003:9000'
         container_name: minio3
         volumes:
-          - '/srv/minio:/data'
-          - '/srv/minio/config:/root/.minio'
+          - 'c:\minio:/data'
+          - 'c:\minio\config:/root/.minio'
         image: minio/minio
         environment:
-          MINIO_ACCESS_KEY: team3
+          MINIO_ACCESS_KEY: team1
           MINIO_SECRET_KEY: 'bird-wheat-govern'
         command: server /data/team3

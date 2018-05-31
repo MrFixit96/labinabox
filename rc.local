@@ -1,0 +1,8 @@
+#!/bin/bash
+cd /srv/labinabox
+./lab_cleanup.sh
+./lab_setup.sh
+docker stop bind
+sleep 5
+docker start bind
+sleep 5

@@ -29,8 +29,12 @@ docker stop bind
 echo '**********Removing Containers*********'
 docker rm ftpserver
 docker rm lab_www_server
-
 docker rm api_server_v2
+
+echo '********stopping minio service********'
+docker-compose -f minio/docker-compose.yml down
+
+echo '*********Clearing container configs***********'
 rm -rf /srv/api_server
 rm -rf /srv/nginx
 
@@ -39,4 +43,5 @@ rm -rf /srv/nginx
 #docker rm bind
 rm -rf /srv/dns/bind/lib/web*
 cp -rf /srv/labinabox/dns /srv/
+echo '********restarting DNS ************'
 docker start bind

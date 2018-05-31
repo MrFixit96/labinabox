@@ -89,6 +89,9 @@ docker exec -itd $FTP_CONTAINER_NAME /bin/sh -c "/ftpdepot/ftpsetup2.sh"
 docker stop $FTP_CONTAINER_NAME > /dev/null 2>&1
 docker start $FTP_CONTAINER_NAME > /dev/null 2>&1
 
+###################Setup/start Minio Server ######################################################################################
+docker-compose -f minio/docker-compose.yml up -d
+
 ######################Setting Team Passwords########################################################################################
 if [[ ! -f  /srv/nginx/etc/.htpasswd ]];then
     mkdir -p /srv/nginx/etc

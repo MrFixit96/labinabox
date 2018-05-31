@@ -38,6 +38,8 @@ export PWFILE='/srv/labinabox/passwords'
 export BIND_STATUS=`docker ps -a|grep bind`
 export NUM_TEAMS=`wc -l $PWFILE | awk '{print $1}'`
 
+export DOCKER_HOST=tcp://0.0.0.0:2375
+
 #IP info
 if [[ `ifconfig|grep eno1 -A1|grep inet|awk '{print $2}'|awk '{print $1}'` ]]; then 
 	export EXTERNAL_IP=`ifconfig|grep eno1 -A1|grep inet|awk '{print $2}'|awk '{print $1}'`
@@ -99,7 +101,7 @@ for item in ${pwarray[@]};do
        passwd=$(echo $item|awk '{print $NF}')
        echo "Setting PW for $team"
        echo $team:$passwd|chpasswd
-       echo $passwd|htpasswd -nbi $team >> /srv/nginx/etc/.htpasswd
+       echo $passwd|htpasswd -nbi $team >> /srv/$team/.htpasswd
        docker exec -itd -itd $FTP_CONTAINER_NAME /bin/sh -c "echo $team:$passwd|chpasswd"
        chown -R $team:$team /srv/$team
 done
@@ -117,12 +119,12 @@ tee /srv/nginx/etc/conf.d/team$id.conf <<EOF
 server {
   listen       80;
   server_name  team$id.webdesigncontest.org;
-  auth_basic "Admins Area";
-  auth_basic_user_file /etc/nginx/.htpasswd;
 
   location / {
      root   /ftpdepot/team$id/html;
      index  index.html index.htm;
+     auth_basic "Admins Area";
+     auth_basic_user_file /srv/team$id/.htpasswd;
   }
 
 }

@@ -81,7 +81,7 @@ if [[ -f $FTP_VOLUME/ftpsetup.sh ]];then
   rm -rf $FTP_VOLUME/ftpsetup2.sh
 fi
 ####Setting up basic ftp configs and then coming back to setup users in next section
-cp /srv/labinabox/old_ftpsetup.sh $FTP_VOLUME/ftpsetup2.sh
+cp /srv/labinabox/ftpsetup2.sh $FTP_VOLUME/ftpsetup2.sh
 docker exec -itd $FTP_CONTAINER_NAME /bin/sh -c "/ftpdepot/ftpsetup2.sh"
 
 docker stop $FTP_CONTAINER_NAME > /dev/null 2>&1

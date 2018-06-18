@@ -10,6 +10,7 @@
 #
 #
 ##################################################################################################################################
+OLDIFS="${IFS}"
 IFS=$'\n'
 
 ######## Global Config Parameters
@@ -27,32 +28,40 @@ export FTP_CONTAINER=janderton/labinabox:ftpserver
 export FTP_CONTAINER_NAME=ftpserver
 export FTP_VOLUME='/srv'
 #
-export LAB_SHELL_CONTAINER=janderton/labinabox:lab_shell
+#export LAB_SHELL_CONTAINER=janderton/labinabox:lab_shell
+export LAB_SHELL_CONTAINER=janderton/labinabox:lab_shell 
 export LAB_SHELL_CONTAINER_NAME=lab_shell
 #
 export DNS_CONTAINER=sameersbn/bind:latest
 export DNS_CONTAINER_NAME=bind
 export DNS_VOLUME='/srv/dns/'
 #
+export MINIO_COMPOSE_FILE=/srv/labinabox/minio/docker-compose.yml
+export MINIO_CONTAINER=minio/minio
+export MINIO_CONTAINER_NAME=minio
+#
 export PWFILE='/srv/labinabox/passwords'
 export BIND_STATUS=`docker ps -a|grep bind`
 export NUM_TEAMS=`wc -l $PWFILE | awk '{print $1}'`
 
-export DOCKER_HOST=tcp://0.0.0.0:2375
 
 #IP info
 if [[ `ifconfig|grep eno1 -A1|grep inet|awk '{print $2}'|awk '{print $1}'` ]]; then 
+	echo 'using wired connection'
 	export EXTERNAL_IP=`ifconfig|grep eno1 -A1|grep inet|awk '{print $2}'|awk '{print $1}'`
 elif [[ `ifconfig|grep wlp58s0 -A1|grep inet|awk '{print $2}'` ]];then
-       export EXTERNAL_IP=`ifconfig|grep wlp58s0 -A1|grep inet|awk '{print $2}'`
+	echo 'using wireless connection'  `ifconfig|grep wlp58s0 -A1|grep inet|awk '{print $2}'`
+        export EXTERNAL_IP=`ifconfig|grep wlp58s0 -A1|grep inet|awk '{print $2}'`
 fi
-
+echo "************External IP = $EXTERNAL_IP*************"
+export DOCKER_HOST='tcp://:2375'
 
 #################Setup DNS Server ############################################################################################33
 echo '*******Copying DNS Zones if not present***********'
-if [[ ! -d /srv/dns ]];then
+#if [[ ! -d /srv/dns ]];then
+	rm -rm /srv/dns/bind/lib/webdesigncontest.org.hosts
 	cp -r /srv/labinabox/dns $DNS_VOLUME
-fi
+#fi
 echo '***********STARTING DNS**********'
 #check and see if dns is already running and start it if its not
 if [[ ! $BIND_STATUS ]];then
@@ -67,15 +76,17 @@ fi
 echo '***********STARTING SHELLS**********'
 for id in `seq 1 $NUM_TEAMS`
 do
-    #sudo useradd -G docker -m -p '$6$XtP.pKgi$QAykbscs0XTFkpgvPtm/Pm76M4XGkBhGxIS3Th8nN6VX9llOsUn4jyNpyu3Z597eTk8k4wRVYHS4FgkeNMcVr.' -s /usr/local/bin/lab_shell user$id
-    sudo useradd  -p '$6$XtP.pKgi$QAykbscs0XTFkpgvPtm/Pm76M4XGkBhGxIS3Th8nN6VX9llOsUn4jyNpyu3Z597eTk8k4wRVYHS4FgkeNMcVr.'  -s /usr/local/bin/lab_shell team$id
-    docker create -it -v /srv/team$id:/app   --name team$id $LAB_SHELL_CONTAINER /bin/bash
-    mkdir -p /srv/team$id/html && cd /srv/team$id && tree -H baseHREF >/srv/team$id/html/index.html && cd -
+    if [[ ! `grep "team$id" /etc/passwd | awk '{print $1}'` == team$id ]];then
+        #sudo useradd -G docker -m -p '$6$XtP.pKgi$QAykbscs0XTFkpgvPtm/Pm76M4XGkBhGxIS3Th8nN6VX9llOsUn4jyNpyu3Z597eTk8k4wRVYHS4FgkeNMcVr.' -s /usr/local/bin/lab_shell user$id
+        sudo useradd  -p '$6$XtP.pKgi$QAykbscs0XTFkpgvPtm/Pm76M4XGkBhGxIS3Th8nN6VX9llOsUn4jyNpyu3Z597eTk8k4wRVYHS4FgkeNMcVr.'  -s /usr/local/bin/lab_shell team$id
+    fi
+    docker create -it -v /srv/team$id:/app   -p 22$id:22 --user team$id --name team$id $LAB_SHELL_CONTAINER /bin/bash
+    mkdir -p /srv/team$id/html && cp /srv/labinabox/index.html /srv/team$id/html/
 done
 
 ###################Setup FTP Server ##############################################################################################
 echo '***********STARTING FTP SERVER**********'
-docker run -itd -p 30000-30010:30000-30010 -p 21:21 -p 20:20 -v "$FTP_VOLUME:/ftpdepot" --name $FTP_CONTAINER_NAME $FTP_CONTAINER
+docker run -d -p 30000-30010:30000-30010 -p 21:21 -p 20:20 -v "$FTP_VOLUME:/ftpdepot" --name $FTP_CONTAINER_NAME $FTP_CONTAINER
 echo '***********Configuring FTP SERVER**********'
 
 if [[ -f $FTP_VOLUME/ftpsetup.sh ]];then
@@ -88,9 +99,6 @@ docker exec -itd $FTP_CONTAINER_NAME /bin/sh -c "/ftpdepot/ftpsetup2.sh"
 
 docker stop $FTP_CONTAINER_NAME > /dev/null 2>&1
 docker start $FTP_CONTAINER_NAME > /dev/null 2>&1
-
-###################Setup/start Minio Server ######################################################################################
-docker-compose -f minio/docker-compose.yml up -d
 
 ######################Setting Team Passwords########################################################################################
 if [[ ! -f  /srv/nginx/etc/.htpasswd ]];then
@@ -127,7 +135,7 @@ server {
      root   /ftpdepot/team$id/html;
      index  index.html index.htm;
      auth_basic "Admins Area";
-     auth_basic_user_file /srv/team$id/.htpasswd;
+     auth_basic_user_file /ftpdepot/team$id/.htpasswd;
   }
 
 }
@@ -161,9 +169,49 @@ git clone $API_REPO $API_VOLUME
 echo '***********Setting UP API SERVER**********'
 docker build -t $API_CONTAINER_NAME $API_VOLUME
 docker run -itd -p 60606:60606  --name  $API_CONTAINER_NAME $API_CONTAINER
+
+###################Setup/start Minio Server ######################################################################################
+grep 'team2' $MINIO_COMPOSE_FILE
+if [[ ! $? == 0 ]];then
+for id in `seq 1 $NUM_TEAMS`;
+do
+   if [[ $id < 10 ]];then
+	   num=0$id
+   else
+	   num=$id
+   fi
+
+export item=`grep -w "team$id" passwords`
+   team=$(echo "$item"|awk '{print $1}')
+   passwd=$(echo $item|awk '{print $NF}')
+docker run -d -p 90$num:9000 --name minio$id -v /srv:/data -v /srv/minio/config$id --env MINIO_ACCESS_KEY="$team" --env MINIO_SECRET_KEY="$passwd" --restart always minio/minio server /data/$team
+#message=`cat <<-EOF
+#    $team:
+#        ports:
+#            - '90$num:9000'
+#        container_name: "minio$id"
+#        volumes:
+#          - '/srv:/data'
+#          - '/srv/minio/config$id:/root/.minio'
+#        image: minio/minio
+#        environment:
+#          MINIO_ACCESS_KEY: "$team"
+#          MINIO_SECRET_KEY: '$passwd'
+#        command: server /data/$team
+#        restart: always
+#EOF
+#`
+
+#  echo "$message" >> $MINIO_COMPOSE_FILE
+
+done
+fi
+#docker-compose -f $MINIO_COMPOSE_FILE up -d
+#docker stack deploy $MINIO_CONTAINER_NAME --compose-file $MINIO_COMPOSE_FILE 
 docker container ls
 
 ###################### Making Sure not to leave PWs behind #############################################################################
 if [[ -f /srv/passwords ]];then
     rm -rf /srv/passwords
 fi
+IFS="${OLDIFS}"

@@ -13,4 +13,5 @@ for id in `seq 1 $NUM_TEAMS`;do
 	curl --user team$id:$passwd http://team$id.webdesigncontest.org && echo "***************** Found team$id ******************"
 	curl --ciphers 'AWS4-HMAC-SHA256' --user team$id:$passwd http://team$id.webdesigncontest.org:90$num && echo "************** Found Minio$id ****************"
 	unset passwd
+  curl http://api.webdesigncontest.org || curl http://api.webdesigncontest.org:60606
 done

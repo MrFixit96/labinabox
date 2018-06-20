@@ -1,5 +1,6 @@
 version: "3"
 services:
+<<<<<<< HEAD
     team1:
         user: '999'
         ports:
@@ -54,3 +55,5 @@ services:
           MINIO_ACCESS_KEY: team3
           MINIO_SECRET_KEY: 'bird-wheat-govern'
         command: server /data/team3
+=======
+>>>>>>> fix_user

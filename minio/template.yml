@@ -1,0 +1,13 @@
+    team$id:
+        ports:
+            - '900$id:9000'
+        container_name: minio$id
+        volumes:
+          - '/srv:/data'
+          - '/srv/minio/config$id:/root/.minio'
+        image: minio/minio
+        environment:
+          MINIO_ACCESS_KEY: team$id
+          MINIO_SECRET_KEY: 'bird-wheat-govern'
+        command: server /data/team$id
+

@@ -7,7 +7,7 @@ webdesigncontest.org.	IN	SOA	ns.webdesigncontest.org. mark.webprofessionals.org.
 			38400 )
 webdesigncontest.org.	IN	NS	ns.webdesigncontest.org.
 ns.webdesigncontest.org.	IN	A	10.0.241.11
-api.webdesigncontest.org.	IN	A	10.0.241.11
+api.webdesigncontest.org.	IN	A	10.0.241.12
 wpserver.webdesigncontest.org. IN A 10.0.241.11
 usg.webdesigncontest.org.	IN	A	192.168.1.1
 cloudkey.webdesigncontest.org.	IN	A	192.168.1.2
@@ -15,4 +15,3 @@ ftp.webdesigncontest.org.	IN	A	10.0.241.11
 www.webdesigncontest.org.	IN	A	10.0.241.11
 data.webdesigncontest.org.	IN	A	10.0.241.11
 webdesigncontest.org.	IN	A	10.0.241.11
-team1.webdesigncontest.org.	IN	A	10.0.241.11

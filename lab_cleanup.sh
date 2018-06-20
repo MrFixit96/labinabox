@@ -33,8 +33,18 @@ docker rm lab_www_server
 docker rm api_server_v2
 
 echo '********stopping minio service********'
-docker-compose -f minio/docker-compose.yml down
-
+#docker stack rm minio
+#docker-compose -f /srv/labinabox/minio/docker-compose.yml down
+for id in `seq 1 $NUM_TEAMS`;do 
+  echo "********Stopping minio$id************"
+  docker stop minio$id
+  docker rm minio$id
+done
+#echo > /srv/labinabox/minio/docker-compose.yml
+#tee /srv/labinabox/minio/docker-compose.yml <<EOF
+#version: "3"
+#services:
+#EOF
 echo '*********Clearing container configs***********'
 rm -rf /srv/api_server
 rm -rf /srv/nginx

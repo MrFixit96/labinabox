@@ -9,7 +9,9 @@ done && \
   sed -i 's/anonymous_enable=YES/anonymous_enable=NO/' /etc/vsftpd/vsftpd.conf && \
   sed -i 's/ftpd_banner=Welcome to VSFTPD service./ftpd_banner=Welcome to WoW VSFTPD service./' /etc/vsftpd/vsftpd.conf && \
   sed -i 's/pasv_address=easypi.info/pasv_address='$EXTERNAL_IP'/' /etc/vsftpd/vsftpd.conf
-
+  if [[ ! `grep local_umask /etc/vsftpd/vsftpd.conf` ]];then
+     echo local_umask=022 >>/etc/vsftpd/vsftpd.conf
+  fi
 readarray pwarray < $PWFILE
 for item in ${pwarray[@]};do
        team=$(echo "$item"|awk '{print $1}')
@@ -17,4 +19,3 @@ for item in ${pwarray[@]};do
 logger "Setting PW for $team"
        echo $team:$passwd|chpasswd
 done
-

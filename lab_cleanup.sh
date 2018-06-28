@@ -40,14 +40,16 @@ for id in `seq 1 $NUM_TEAMS`;do
   docker stop minio$id
   docker rm minio$id
 done
-#echo > /srv/labinabox/minio/docker-compose.yml
-#tee /srv/labinabox/minio/docker-compose.yml <<EOF
-#version: "3"
-#services:
-#EOF
+echo > /srv/labinabox/minio/docker-compose.yml
+tee /srv/labinabox/minio/docker-compose.yml <<EOF
+version: "3"
+services:
+EOF
 echo '*********Clearing container configs***********'
 rm -rf /srv/api_server
 rm -rf /srv/nginx
+rm -rf /srv/html
+rm -rf /srv/ftpsetup2.sh
 
 #Removing Bind image makes it hard to bootstrap system when no
 #no internet is present. Only do this when you need to update the image

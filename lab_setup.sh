@@ -41,20 +41,28 @@ export MINIO_CONTAINER=minio/minio
 export MINIO_CONTAINER_NAME=minio
 #
 export PWFILE='/srv/labinabox/passwords'
+export STUDENT_ZIP_FILE='Materials_for_Contestants.zip'
 export BIND_STATUS=`docker ps -a|grep bind`
 export NUM_TEAMS=`wc -l $PWFILE | awk '{print $1}'`
+#Change this to 1 to start using docker compose services instead of single docker containers
+export USE_COMPOSE=0
 
-
-#IP info
-if [[ `ifconfig|grep eno1 -A1|grep inet|awk '{print $2}'|awk '{print $1}'` ]]; then 
+#Get IP info and deduce API Servers IP Address (webserver plus one)
+if [[ `ifconfig|grep -A1 -E '^eno|^eth'|grep inet|awk '{print $2}'|awk '{print $1}'|head -n1` ]]; then 
 	echo 'using wired connection'
-	export EXTERNAL_IP=`ifconfig|grep eno1 -A1|grep inet|awk '{print $2}'|awk '{print $1}'|head -n1`
-	export INTERFACE='eno1'
-elif [[ `ifconfig|grep wlp58s0 -A1|grep inet|awk '{print $2}'` ]];then
-	echo 'using wireless connection'  `ifconfig|grep wlp58s0 -A1|grep inet|awk '{print $2}'|head -n1`
-        export EXTERNAL_IP=`ifconfig|grep wlp58s0 -A1|grep inet|awk '{print $2}'`
-	export INTERFACE='wlp58s0'
+	export EXTERNAL_IP=`ifconfig|grep -A1  -E '^eno|^eth'|grep inet|awk '{print $2}'|awk '{print $1}'|head -n1`
+	export INTERFACE=`ifconfig|grep -A1 -E '^eno|^eth'|head -n1|awk -F: '{print $1}'`
+elif [[ `ifconfig|grep wlp -A1|grep inet|awk '{print $2}'|head -n1` ]];then
+	echo 'using wireless connection'  `ifconfig|grep wlp -A1|grep inet|awk '{print $2}'|head -n1`
+        export EXTERNAL_IP=`ifconfig|grep wlp -A1|grep inet|awk '{print $2}'`
+	export INTERFACE=`ifconfig|grep wlp |awk -F: '{print $1}'`
 fi
+
+IP_LAST_OCTET=`echo $EXTERNAL_IP|awk -F\. '{print $NF}'`
+IP_FIRST_THREE_OCTETS=`echo $EXTERNAL_IP|awk -F\. '{print $1 "." $2 "." $3 "."}'`
+IP_NEW_OCTET=`expr $IP_LAST_OCTET + 1`
+export WWW_IP_ADDRESS="$EXTERNAL_IP"
+export API_IP_ADDRESS="$IP_FIRST_THREE_OCTETS$IP_NEW_OCTET"
 
 ######Potential Regression... not sure why this was removed, Leaving it in for Branch Merge #######
 #Configuring Docker 
@@ -71,12 +79,12 @@ echo "************External IP = $EXTERNAL_IP*************"
 echo '*******Copying DNS Zones if not present***********'
 #if [[ ! -f /srv/dns/bind/lib/webdesigncontest.org.hosts ]];then
 	rm -rf /srv/dns/
-	cp -r /srv/labinabox/dns $DNS_VOLUME
+	cp -rf /srv/labinabox/dns $DNS_VOLUME
 #fi
 #check and see if dns is already running and start it if its not
 if [[ ! $BIND_STATUS ]];then
     echo '***********CREATING AND STARTING DNS**********'
-    docker run -itd --name=$DNS_CONTAINER_NAME --dns=127.0.0.1 -p $EXTERNAL_IP:53:53/udp -p $EXTERNAL_IP:10000:10000  --volume=$DNS_VOLUME:/data  --env='ROOT_PASSWORD=SecretPassword'  $DNS_CONTAINER
+    docker run -itd --name=$DNS_CONTAINER_NAME --restart always --dns=127.0.0.1 -p $EXTERNAL_IP:53:53/udp -p $EXTERNAL_IP:10000:10000  --volume=$DNS_VOLUME:/data  --env='ROOT_PASSWORD=SecretPassword'  $DNS_CONTAINER
 elif [[ `echo $BIND_STATUS|grep Exited` ]];then
     echo '***********STARTING DNS**********'
     docker start bind
@@ -97,20 +105,22 @@ do
         sudo useradd  -p '$6$XtP.pKgi$QAykbscs0XTFkpgvPtm/Pm76M4XGkBhGxIS3Th8nN6VX9llOsUn4jyNpyu3Z597eTk8k4wRVYHS4FgkeNMcVr.'  -s /usr/local/bin/lab_shell team$id
     fi
     docker create -it -v /srv/team$id:/app   -p 22$id:22 --user team$id --name team$id $LAB_SHELL_CONTAINER /bin/bash
-    mkdir -p /srv/team$id/html && cp /srv/labinabox/index.html /srv/team$id/html/
+    mkdir /srv/team$id && chown team$id:team$id /srv/team$id && cp -rf /srv/labinabox/html /srv/team$id/html
+
 done
 
 ###################Setup FTP Server ##############################################################################################
 echo '***********STARTING FTP SERVER**********'
-docker run -d -p 30000-30010:30000-30010 -p 21:21 -p 20:20 -v "$FTP_VOLUME:/ftpdepot:rw" --name $FTP_CONTAINER_NAME $FTP_CONTAINER
+docker run -d --restart always -p 30000-30010:30000-30010 -p 21:21 -p 20:20 -v "$FTP_VOLUME:/ftpdepot:rw" --restart always --name $FTP_CONTAINER_NAME $FTP_CONTAINER
 echo '***********Configuring FTP SERVER**********'
 
-if [[ -f $FTP_VOLUME/ftpsetup.sh ]];then
+if [[ -f $FTP_VOLUME/ftpsetup2.sh ]];then
   rm -rf $FTP_VOLUME/ftpsetup.sh
   rm -rf $FTP_VOLUME/ftpsetup2.sh
 fi
 ####Setting up basic ftp configs and then coming back to setup users in next section
-cp /srv/labinabox/ftpsetup2.sh $FTP_VOLUME/ftpsetup2.sh
+cp /srv/labinabox/ftpsetup2.sh $FTP_VOLUME/ftpsetup2.sh && chmod u+x /srv/labinabox/ftpsetup2.sh
+cp /srv/labinabox/passwords $FTP_VOLUME/passwords
 docker exec -itd $FTP_CONTAINER_NAME /bin/sh -c "/ftpdepot/ftpsetup2.sh"
 
 docker stop $FTP_CONTAINER_NAME > /dev/null 2>&1
@@ -171,13 +181,17 @@ echo "***Restarting dns after registering webservers***"
 docker stop bind && docker start bind
 
 echo '##########Starting Web Server###############'
-docker run -itd -p 80:80  -v "$WWW_CONFIG_VOLUME:/etc/nginx" --volumes-from ftpserver:rw --name $WWW_CONTAINER_NAME $WWW_CONTAINER
-docker cp /usr/bin/tree $WWW_CONTAINER_NAME:/usr/bin/tree
 if [[ ! -d /srv/html ]];then
    mkdir /srv/html 
 fi
 
-cp /srv/labinabox/index.html /srv/html/index.html
+cp -rf /srv/labinabox/index.html /srv/html/
+
+if [[ -f /srv/labinabox/$STUDENT_ZIP_FILE ]];then
+   cp -rf /srv/labinabox/$STUDENT_ZIP_FILE /srv/html/
+fi
+
+docker run -itd -p $WWW_IP_ADDRESS:80:80 -v "$WWW_CONFIG_VOLUME:/etc/nginx" --volumes-from ftpserver:rw --restart always --name $WWW_CONTAINER_NAME $WWW_CONTAINER
 
 ######################Setup API Server ################################################################################################
 echo '***********Cloning API Repo**********'
@@ -185,18 +199,19 @@ rm -rf $API_VOLUME
 git clone $API_REPO $API_VOLUME
 
 echo '***********Setting UP API SERVER**********'
-docker build -t $API_CONTAINER $API_VOLUME
+if [[ -d /srv/api_server ]];then
+  docker build -t $API_CONTAINER $API_VOLUME
+fi
 
-if [[ $INTERFACE == 'eno1' ]];then
-  docker run -d -p $EXTERNAL_IP:80:60606  --name  $API_CONTAINER_NAME $API_CONTAINER
+if [[ $INTERFACE =~ 'eno' ]] || [[ $INTERFACE =~ 'eth' ]];then
+  docker run -d -p $API_IP_ADDRESS:80:60606  --restart always --name  $API_CONTAINER_NAME $API_CONTAINER
 else
-  docker run -d -p 60606:60606  --name  $API_CONTAINER_NAME $API_CONTAINER
+  docker run -d -p 60606:60606  --restart always --name  $API_CONTAINER_NAME $API_CONTAINER
 fi
 
 ###################Setup/start Minio Server ######################################################################################
 ####Leaving the docker-compose settings in here but not using them at the moment
-grep 'team2' $MINIO_COMPOSE_FILE
-if [[ $? == 0 ]];then
+if [[ $USE_COMPOSE -eq 0 ]];then
 for id in `seq 1 $NUM_TEAMS`;
 do
    if [[ $id -lt 10 ]];then
@@ -208,7 +223,7 @@ do
    export item=`grep -w "team$id" passwords`
    team=$(echo "$item"|awk '{print $1}')
    passwd=$(echo $item|awk '{print $NF}')
-   docker run -d -p 90$num:9000 --name minio$id -v /srv:/data -v /srv/minio/config$id --env MINIO_ACCESS_KEY="$team" --env MINIO_SECRET_KEY="$passwd" --restart always minio/minio server /data/$team
+   docker run -d -p 90$num:9000 --name minio$id -v /srv/team$id:/data -v /srv/minio/config$id --env MINIO_ACCESS_KEY="$team" --env MINIO_SECRET_KEY="$passwd" --restart always minio/minio server /data
 done
 else
   rm $MINIO_COMPOSE_FILE
@@ -233,7 +248,7 @@ EOF
   done
   echo "$message" >> $MINIO_COMPOSE_FILE
 #docker-compose -f $MINIO_COMPOSE_FILE up -d
-#docker stack deploy $MINIO_CONTAINER_NAME --compose-file $MINIO_COMPOSE_FILE 
+docker stack deploy $MINIO_CONTAINER_NAME --compose-file $MINIO_COMPOSE_FILE 
 fi
 docker container ls
 

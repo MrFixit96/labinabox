@@ -15,3 +15,15 @@ Author: James Anderton @MrFixit96 (james@janderton.com)
 Date: 4/17/2018
 Purpose: This script will stop all services and clean up the artifacts created by the "lab_setup.sh" script and restart the bind container so that the lab server is ready for another contest.
 ```
+#### File: lab_archive.sh
+```
+Author: James Anderton @MrFixit96 (james@janderton.com)
+Date: 6/20/2018
+Purpose: This script will mount a usb drive, create a tar.gz that includes all of the team directories in the "lab in a box" environment and copies it to the usb drive, then unmounts the drive.
+```
+#### File: test_lab.sh
+```
+Author: James Anderton @MrFixit96 (james@janderton.com)
+Date: 6/20/2018
+Purpose: This script is an automated way to test each team's WWW Server and Minio Cloud Storage, and the shared API server.
+```

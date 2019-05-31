@@ -1,0 +1,56 @@
+    webdesigncontest.org:53 {
+        cache 30
+        loop
+        reload
+        loadbalance
+        webdesigncontest.org.   IN      SOA     ns.webdesigncontest.org. mark.webprofessionals.org. 1522108721 10800 3600 604800 38400
+        webdesigncontest.org.   IN      NS      ns.webdesigncontest.org.
+        ns.webdesigncontest.org.        IN      A       10.0.241.11
+        api.webdesigncontest.org.       IN      A       10.0.241.12
+        wpserver.webdesigncontest.org. IN A 10.0.241.11
+        usg.webdesigncontest.org.       IN      A       192.168.1.1
+        cloudkey.webdesigncontest.org.  IN      A       192.168.1.2
+        ftp.webdesigncontest.org.       IN      A       10.0.241.11
+        www.webdesigncontest.org.       IN      A       10.0.241.11
+        data.webdesigncontest.org.      IN      A       10.0.241.11
+        webdesigncontest.org.   IN      A       10.0.241.11
+        team1.webdesigncontest.org.     IN      A       10.0.0.21
+        team2.webdesigncontest.org.     IN      A       10.0.0.21
+        team3.webdesigncontest.org.     IN      A       10.0.0.21
+        team4.webdesigncontest.org.     IN      A       10.0.0.21
+        team5.webdesigncontest.org.     IN      A       10.0.0.21
+        team6.webdesigncontest.org.     IN      A       10.0.0.21
+        team7.webdesigncontest.org.     IN      A       10.0.0.21
+        team8.webdesigncontest.org.     IN      A       10.0.0.21
+        team9.webdesigncontest.org.     IN      A       10.0.0.21
+        team10.webdesigncontest.org.     IN      A       10.0.0.21
+        team11.webdesigncontest.org.     IN      A       10.0.0.21
+        team12.webdesigncontest.org.     IN      A       10.0.0.21
+        team13.webdesigncontest.org.     IN      A       10.0.0.21
+        team14.webdesigncontest.org.     IN      A       10.0.0.21
+        team15.webdesigncontest.org.     IN      A       10.0.0.21
+        team16.webdesigncontest.org.     IN      A       10.0.0.21
+        team17.webdesigncontest.org.     IN      A       10.0.0.21
+        team18.webdesigncontest.org.     IN      A       10.0.0.21
+        team19.webdesigncontest.org.     IN      A       10.0.0.21
+        team20.webdesigncontest.org.     IN      A       10.0.0.21
+        team21.webdesigncontest.org.     IN      A       10.0.0.21
+        team22.webdesigncontest.org.     IN      A       10.0.0.21
+        team23.webdesigncontest.org.     IN      A       10.0.0.21
+        team24.webdesigncontest.org.     IN      A       10.0.0.21
+        team25.webdesigncontest.org.     IN      A       10.0.0.21
+        team26.webdesigncontest.org.     IN      A       10.0.0.21
+        team27.webdesigncontest.org.     IN      A       10.0.0.21
+        team28.webdesigncontest.org.     IN      A       10.0.0.21
+        team29.webdesigncontest.org.     IN      A       10.0.0.21
+        team30.webdesigncontest.org.     IN      A       10.0.0.21
+        team31.webdesigncontest.org.     IN      A       10.0.0.21
+        team32.webdesigncontest.org.     IN      A       10.0.0.21
+        team33.webdesigncontest.org.     IN      A       10.0.0.21
+        team34.webdesigncontest.org.     IN      A       10.0.0.21
+        team35.webdesigncontest.org.     IN      A       10.0.0.21
+        team36.webdesigncontest.org.     IN      A       10.0.0.21
+        team37.webdesigncontest.org.     IN      A       10.0.0.21
+        team38.webdesigncontest.org.     IN      A       10.0.0.21
+        team39.webdesigncontest.org.     IN      A       10.0.0.21
+        team40.webdesigncontest.org.     IN      A       10.0.0.21

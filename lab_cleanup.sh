@@ -9,7 +9,7 @@
 ###################################################################################################################################
 export PWFILE=/srv/labinabox/passwords
 export NUM_TEAMS=`wc -l $PWFILE |awk '{print$1}'`
-export DOCKER_HOST=tcp://0.0.0.0:2375
+#export DOCKER_HOST=tcp://0.0.0.0:2375
 
 echo '**********Removing User Accounts and Home Folders*********'
 
@@ -17,6 +17,11 @@ for id in `seq 1 $NUM_TEAMS`;do
   docker stop team$id
   docker rm team$id
   userdel -r team$id
+  docker stop theia_$id
+  docker rm theia_$id
+  #TODO backup team stuff
+  rm -rf /srv/backup/team$id/
+  mv /srv/team$id /srv/backup/team$id
   rm -rf /srv/team$id
 done
 

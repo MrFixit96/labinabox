@@ -71,7 +71,7 @@ export API_IP_ADDRESS="$IP_FIRST_THREE_OCTETS$IP_NEW_OCTET"
 #    cp -rf /srv/labinabox/docker/daemon.json /etc/docker/
 #fi
 #service docker restart
-export DOCKER_HOST='tcp://:2375'
+#export DOCKER_HOST='tcp://:2375'
 
 echo "************External IP = $EXTERNAL_IP*************"
 
@@ -105,8 +105,9 @@ do
         sudo useradd  -p '$6$XtP.pKgi$QAykbscs0XTFkpgvPtm/Pm76M4XGkBhGxIS3Th8nN6VX9llOsUn4jyNpyu3Z597eTk8k4wRVYHS4FgkeNMcVr.'  -s /usr/local/bin/lab_shell team$id
     fi
     docker create -it -v /srv/team$id:/app   -p 22$id:22 --user team$id --name team$id $LAB_SHELL_CONTAINER /bin/bash
-    mkdir /srv/team$id && chown team$id:team$id /srv/team$id && cp -rf /srv/labinabox/html /srv/team$id/html
-
+    mkdir /srv/team$id && chown team$id:team$id /srv/team$id && cp -rf /srv/labinabox/html /srv/team$id/html 
+    cp -rf /srv/backup/team$id/* /srv/team$id/
+    docker run -d -p 300$id:3000 -v "/srv/team$id:/home/project:cached" --name theia_$id theiaide/theia:next --inspect=0.0.0.0:1100$id
 done
 
 ###################Setup FTP Server ##############################################################################################
@@ -121,7 +122,7 @@ fi
 ####Setting up basic ftp configs and then coming back to setup users in next section
 cp /srv/labinabox/ftpsetup2.sh $FTP_VOLUME/ftpsetup2.sh && chmod u+x /srv/labinabox/ftpsetup2.sh
 cp /srv/labinabox/passwords $FTP_VOLUME/passwords
-docker exec -itd $FTP_CONTAINER_NAME /bin/sh -c "/ftpdepot/ftpsetup2.sh"
+docker exec -it $FTP_CONTAINER_NAME /bin/sh -c "/ftpdepot/ftpsetup2.sh"
 
 docker stop $FTP_CONTAINER_NAME > /dev/null 2>&1
 docker start $FTP_CONTAINER_NAME > /dev/null 2>&1
@@ -180,7 +181,7 @@ done #EndFor
 echo "***Restarting dns after registering webservers***"
 docker stop bind && docker start bind
 
-echo '##########Starting Web Server###############'
+echo '##########Starting Contest Instruction Web Server###############'
 if [[ ! -d /srv/html ]];then
    mkdir /srv/html 
 fi
@@ -191,7 +192,7 @@ if [[ -f /srv/labinabox/$STUDENT_ZIP_FILE ]];then
    cp -rf /srv/labinabox/$STUDENT_ZIP_FILE /srv/html/
 fi
 
-docker run -itd -p $WWW_IP_ADDRESS:80:80 -v "$WWW_CONFIG_VOLUME:/etc/nginx" --volumes-from ftpserver:rw --restart always --name $WWW_CONTAINER_NAME $WWW_CONTAINER
+docker run -itd -p $WWW_IP_ADDRESS:80:80 -v "$WWW_CONFIG_VOLUME:/etc/nginx" --volumes-from ftpserver:rw  --restart always --name $WWW_CONTAINER_NAME $WWW_CONTAINER
 
 ######################Setup API Server ################################################################################################
 echo '***********Cloning API Repo**********'
@@ -203,11 +204,11 @@ if [[ -d /srv/api_server ]];then
   docker build -t $API_CONTAINER $API_VOLUME
 fi
 
-if [[ $INTERFACE =~ 'eno' ]] || [[ $INTERFACE =~ 'eth' ]];then
-  docker run -d -p $API_IP_ADDRESS:80:60606  --restart always --name  $API_CONTAINER_NAME $API_CONTAINER
-else
+#if [[ $INTERFACE =~ 'eno' ]] || [[ $INTERFACE =~ 'eth' ]];then
+#  docker run -d -p $API_IP_ADDRESS:80:60606  --restart always --name  $API_CONTAINER_NAME $API_CONTAINER
+#else
   docker run -d -p 60606:60606  --restart always --name  $API_CONTAINER_NAME $API_CONTAINER
-fi
+#fi
 
 ###################Setup/start Minio Server ######################################################################################
 ####Leaving the docker-compose settings in here but not using them at the moment

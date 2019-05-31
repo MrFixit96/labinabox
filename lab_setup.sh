@@ -159,14 +159,16 @@ server {
   server_name  team$id.webdesigncontest.org;
 
   location / {
-     root   /ftpdepot/team$id/html;
-     index  index.html index.htm;
-     auth_basic "Admins Area";
-     auth_basic_user_file /ftpdepot/team$id/.htpasswd;
+    root   /ftpdepot/team$id/html;
+    index  index.html index.htm;
+    auth_basic "Admins Area";
+    auth_basic_user_file /ftpdepot/team$id/.htpasswd;
   }
 
   location /editor {
     proxy_pass team$id.webdesigncontest.org:420$id
+    auth_basic "Admins Area";
+    auth_basic_user_file /ftpdepot/team$id/.htpasswd;
   }
 
 }

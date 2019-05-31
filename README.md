@@ -1,5 +1,8 @@
 # Lab In A Box
 This project started out as a way to host the contestant environment for the web design contest hosted by WebProfessionals.org and will start up a shell container for each team as well as an nginx and vsftp container all pointing to the user's home directory and htpasswd protected on the web frontend. Finally, there is a NodeJS container hosting an API server as well for the contestants to consume. The docker file for the api server is hosted in the forked repo web-design-contest-api.
+The server this was tested on was a standard install of Fedora 27 with the latest version of Docker and Docker-Compose available as of June 21st 2018.
+
+Please replace the passwords file with a new one in the same format (team1 password)
 
 ##### ToDo: Move configs into containers themselves and convert to docker-compose format
 
@@ -14,4 +17,16 @@ Purpose: This script will download and setup a "lab in a box" environment comple
 Author: James Anderton @MrFixit96 (james@janderton.com)
 Date: 4/17/2018
 Purpose: This script will stop all services and clean up the artifacts created by the "lab_setup.sh" script and restart the bind container so that the lab server is ready for another contest.
+```
+#### File: lab_archive.sh
+```
+Author: James Anderton @MrFixit96 (james@janderton.com)
+Date: 6/20/2018
+Purpose: This script will mount a usb drive, create a tar.gz that includes all of the team directories in the "lab in a box" environment and copies it to the usb drive, then unmounts the drive.
+```
+#### File: test_lab.sh
+```
+Author: James Anderton @MrFixit96 (james@janderton.com)
+Date: 6/20/2018
+Purpose: This script is an automated way to test each team's WWW Server and Minio Cloud Storage, and the shared API server.
 ```

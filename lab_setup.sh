@@ -107,7 +107,7 @@ do
     docker create -it -v /srv/team$id:/app   -p 22$id:22 --user team$id --name team$id $LAB_SHELL_CONTAINER /bin/bash
     mkdir /srv/team$id && chown team$id:team$id /srv/team$id && cp -rf /srv/labinabox/html /srv/team$id/html 
     cp -rf /srv/backup/team$id/* /srv/team$id/
-    docker run -d -p 300$id:3000 -v "/srv/team$id:/home/project:cached" --name theia_$id theiaide/theia:next --inspect=0.0.0.0:1100$id
+    docker run -d -p 420$id:3000 -v "/srv/team$id:/home/project:cached" --name theia_$id theiaide/theia:next --inspect=0.0.0.0:1100$id
 done
 
 ###################Setup FTP Server ##############################################################################################
@@ -159,10 +159,16 @@ server {
   server_name  team$id.webdesigncontest.org;
 
   location / {
-     root   /ftpdepot/team$id/html;
-     index  index.html index.htm;
-     auth_basic "Admins Area";
-     auth_basic_user_file /ftpdepot/team$id/.htpasswd;
+    root   /ftpdepot/team$id/html;
+    index  index.html index.htm;
+    auth_basic "Admins Area";
+    auth_basic_user_file /ftpdepot/team$id/.htpasswd;
+  }
+
+  location /editor {
+    proxy_pass team$id.webdesigncontest.org:420$id
+    auth_basic "Admins Area";
+    auth_basic_user_file /ftpdepot/team$id/.htpasswd;
   }
 
 }

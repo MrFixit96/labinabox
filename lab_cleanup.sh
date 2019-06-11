@@ -14,10 +14,10 @@ export NUM_TEAMS=`wc -l $PWFILE |awk '{print$1}'`
 echo '**********Removing User Accounts and Home Folders*********'
 
 for id in `seq 1 $NUM_TEAMS`;do 
-  docker stop team$id
+  docker stop -t 1 team$id
   docker rm team$id
   userdel -r team$id
-  docker stop theia_$id
+  docker stop -t 1 theia_$id
   docker rm theia_$id
   #TODO backup team stuff
   rm -rf /srv/backup/team$id/

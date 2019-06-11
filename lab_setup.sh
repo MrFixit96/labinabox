@@ -102,17 +102,17 @@ echo '***********STARTING SHELLS**********'
 for id in `seq 1 $NUM_TEAMS`
 do
     if [[ ! `grep "team$id" /etc/passwd | awk '{print $1}'` == team$id ]];then
-        sudo useradd  -p '$6$XtP.pKgi$QAykbscs0XTFkpgvPtm/Pm76M4XGkBhGxIS3Th8nN6VX9llOsUn4jyNpyu3Z597eTk8k4wRVYHS4FgkeNMcVr.'  -s /usr/local/bin/lab_shell team$id
+        sudo useradd  -p '$6$XtP.pKgi$QAykbscs0XTFkpgvPtm/Pm76M4XGkBhGxIS3Th8nN6VX9llOsUn4jyNpyu3Z597eTk8k4wRVYHS4FgkeNMcVr.'  -s /usr/local/bin/lab_shell -u 200$id -G labinabox,theia team$id 
     fi
     docker create -it -v /srv/team$id:/app   -p 22$id:22 --user team$id --name team$id $LAB_SHELL_CONTAINER /bin/bash
-    mkdir /srv/team$id && chown team$id:team$id /srv/team$id && cp -rf /srv/labinabox/html /srv/team$id/html 
+    mkdir /srv/team$id && chown -R team$id:theia /srv/team$id && cp -rf /srv/labinabox/html /srv/team$id/html && chmod -R g+w /srv/team$id
     cp -rf /srv/backup/team$id/* /srv/team$id/
-    docker run -d -p 420$id:3000 -v "/srv/team$id:/home/project:cached" --name theia_$id theiaide/theia:next --inspect=0.0.0.0:1100$id
+    docker run -d -p 420$id:3000 -v "/srv/team$id:/home/project:cached" --name theia_$id theiaide/theia:next --inspect=0.0.0.0:520$id
 done
 
 ###################Setup FTP Server ##############################################################################################
 echo '***********STARTING FTP SERVER**********'
-docker run -d --restart always -p 30000-30010:30000-30010 -p 21:21 -p 20:20 -v "$FTP_VOLUME:/ftpdepot:rw" --restart always --name $FTP_CONTAINER_NAME $FTP_CONTAINER
+docker run -itd -p 30000-30010:30000-30010 -p 21:21 -p 20:20 -v "$FTP_VOLUME:/ftpdepot:rw" --restart always --name $FTP_CONTAINER_NAME $FTP_CONTAINER
 echo '***********Configuring FTP SERVER**********'
 
 if [[ -f $FTP_VOLUME/ftpsetup2.sh ]];then
@@ -141,7 +141,8 @@ for item in ${pwarray[@]};do
        echo $team:$passwd|chpasswd
        echo $passwd|htpasswd -nbi $team >> /srv/$team/.htpasswd
        docker exec -itd -itd $FTP_CONTAINER_NAME /bin/sh -c "echo $team:$passwd|chpasswd"
-       chown -R $team:$team /srv/$team
+       chown -R $team:theia /srv/$team
+       chmod -R g+w /srv/$team
 done
 
 #######################Setup student web servers #####################################################################################
@@ -164,11 +165,22 @@ server {
     auth_basic "Admins Area";
     auth_basic_user_file /ftpdepot/team$id/.htpasswd;
   }
+}
 
-  location /editor {
-    proxy_pass team$id.webdesigncontest.org:420$id
+server {
+  listen	80;
+  server_name	editor$id.webdesigncontest.org;
+
+  location / {
+#    proxy_pass http://team$id.webdesigncontest.org:420$id;
+    proxy_pass http://10.0.241.11:420$id;
     auth_basic "Admins Area";
     auth_basic_user_file /ftpdepot/team$id/.htpasswd;
+
+    
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection "upgrade";
   }
 
 }
@@ -178,6 +190,10 @@ EOF
 echo "Checking team$id dns"
   if [[ ! `grep -i team$id /srv/dns/bind/lib/webdesigncontest.org.hosts` ]];then
     export line="team$id.webdesigncontest.org.     IN      A       $EXTERNAL_IP"
+    echo "writing $line"
+    echo $line>>/srv/dns/bind/lib/webdesigncontest.org.hosts
+
+    export line="editor$id.webdesigncontest.org.     IN      A       $EXTERNAL_IP"
     echo "writing $line"
     echo $line>>/srv/dns/bind/lib/webdesigncontest.org.hosts
 fi
